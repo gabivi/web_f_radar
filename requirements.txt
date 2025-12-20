@@ -1,5 +1,4 @@
 FlightRadar24
-FlightRadar24.api
 typing 
 flask
 uvicorn[standard]
