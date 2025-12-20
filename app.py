@@ -258,6 +258,8 @@ def data():
             "info": f"זמן: {time.strftime('%H:%M:%S')}"
         })
 
+    points = FlightTracker()
+
     return jsonify({"points": points})
 
 
