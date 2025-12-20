@@ -4,3 +4,4 @@ flask
 bs4
 uvicorn[standard]
 gunicorn
+asgiref
