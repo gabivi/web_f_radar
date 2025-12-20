@@ -1,4 +1,5 @@
 FlightRadarAPI
 typing 
 flask
+bs4
 uvicorn[standard]
