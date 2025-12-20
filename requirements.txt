@@ -1,3 +1,4 @@
 FlightRadar24
 typing 
 flask
+uvicorn[standard]
