@@ -220,7 +220,7 @@ def main():
         flights = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
 
         # הצגת התוצאות
-        tracker.print_flight_info(flights)
+        #tracker.print_flight_info(flights)
 
     except Exception as e:
         print(f"שגיאה: {e}")
@@ -246,19 +246,76 @@ def data():
       ]
     }
     """
-    base_lat = 32.08
-    base_lng = 34.78
+    #NW = (34.25, 33.35)
+    #SE = (35.90, 29.50)
+
+
+
+    #TOP_LEFT = (32.0573501,34.7737489)      # (latitude, longitude) - שמאל למעלה
+    #BOTTOM_RIGHT = (32.0655618,34.7788870)
+    #TOP_LEFT = (34.25, 33.35)      # (latitude, longitude) - שמאל למעלה
+    #BOTTOM_RIGHT = (35.90, 29.50)
+
+    TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
+    BOTTOM_RIGHT = (31.5, 35.5)
+
+
+
 
     points = []
-    for i in range(5):
+    #for i in range(5):
+    #    points.append({
+    #        "lat": base_lat + random.uniform(-0.5, 0.5),
+    #        "lng": base_lng + random.uniform(-0.5, 0.5),
+    #        "name": f"נקודה {i+1}",
+    #        "info": f"זמן: {time.strftime('%H:%M:%S')}"
+    #    })
+
+
+    tracker = FlightTracker()
+    #ff = tracker.get_flights_in_area()
+    #points = tracker.get_flights_in_area((180,-90),(-180,90))
+
+    #flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
+    flight = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
+
+    #for flight1 in flight:
+    #    points.append(flight1)
+
+    for i, flight in enumerate(flight, 1):
+        print(f"\nטיסה                           #{i}      :")
+        print(f"  שם קריאה: {flight['callsign']}")
+        print(f"  רישום: {flight['registration']}")
+        print(f"  מטוס: {flight['aircraft']}")
+        print(f"  חברת תעופה: {flight['airline']}")
+        print(f"  מוצא: {flight['origin']} → יעד: {flight['destination']}")
+        print(f"  מיקום: ({flight['latitude']:.4f}, {flight['longitude']:.4f})")
+        print(f"  גובה: {flight['altitude']} רגל")
+        print(f"  מהירות: {flight['speed']} קשר")
+        print(f"  כיוון: {flight['heading']}°")
+        print(f"  מהירות אנכית: {flight['vertical_speed']} רגל/דקה")
         points.append({
-            "lat": base_lat + random.uniform(-0.5, 0.5),
-            "lng": base_lng + random.uniform(-0.5, 0.5),
-            "name": f"נקודה {i+1}",
-            "info": f"זמן: {time.strftime('%H:%M:%S')}"
+            "lat": flight['latitude'],
+            "lng": flight['longitude'],
+            "name" : flight['origin'] + "->" + str(flight['destination']) + chr(13) + chr(10) + flight['airline'],
+            "info" : flight['aircraft'] + " " + str(flight['speed']) + " " + flight['callsign'] + " " + str(flight['altitude'])
         })
 
-    points = FlightTracker()
+    #points.append({
+    #        "lat": (35,90),
+    #        "lng": (37,180),
+    #        "name" : 111,
+    #        "info" : 222
+    #    })
+
+
+    #tracker.print_flight_info(points)
+
+    #points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
+    #points = tracker.get_flights_in_area((-180,90),(180,-90))
+
+
+
 
     return jsonify({"points": points})
 
