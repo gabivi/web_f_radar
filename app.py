@@ -298,7 +298,7 @@ def data():
             "lat": flight['latitude'],
             "lng": flight['longitude'],
             "name" : "\n" + flight['origin'] + "->" + str(flight['destination']) + "<br>" + "<br>" + flight['airline'],
-            "info" : flight['aircraft'] + " " + str(flight['speed']) + " " + flight['callsign'] + " " + str(flight['altitude'])
+            "info" : flight['aircraft'] + "<br>" + str(flight['speed']) + "<br>" + flight['callsign'] + "<br>" + str(flight['altitude'])
         })
 
     #points.append({
