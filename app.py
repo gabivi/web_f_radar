@@ -13,7 +13,7 @@ TEMPLATE = r"""
 <html lang="he">
 <head>
     <meta charset="UTF-8">
-    <title>מפה עם JSON מתעדכן</title>
+    <title>  planes over Amir </title>
     <style>
         html, body {
             height: 100%;
