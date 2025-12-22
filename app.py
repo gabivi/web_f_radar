@@ -53,6 +53,8 @@ TEMPLATE = r"""
     .plane-icon-selected img {
       filter: drop-shadow(0 0 6px rgba(0,0,0,0.5));
     }
+    
+    
   </style>
 
   <!-- Leaflet CSS -->
@@ -180,6 +182,22 @@ TEMPLATE = r"""
     });
   }
 
+  function makeStaticDivIcon(rotationDeg, isSelected) {
+    const cls = isSelected ? 'plane-icon plane-icon-selected' : 'plane-icon';
+    const html = `
+      <div class="${cls}">
+        <img src="/static/icons/point.jpg" style="transform: rotate(${rotationDeg}deg);" />
+      </div>
+    `;
+    return L.divIcon({
+      html,
+      className: '',
+      iconSize: [26, 26],
+      iconAnchor: [13, 13]
+    });
+  }
+
+
   function tooltipClass(isSelected) {
     return isSelected ? 'plane-tooltip plane-tooltip-selected' : 'plane-tooltip';
   }
@@ -249,7 +267,12 @@ TEMPLATE = r"""
           rot = rotationDegByDirection(classifyDirection(p));
         }
 
-        const icon = makePlaneDivIcon(rot, isSelected);
+        let icon = ''
+        if (p.name !== 'here') {
+             icon = makePlaneDivIcon(rot, isSelected);
+            } else {
+             icon = makeStaticDivIcon(rot, isSelected);
+            }
         const marker = L.marker([p.lat, p.lng], { icon });
 
         // להעלות את הנבחר בחזית
@@ -1012,7 +1035,13 @@ def data():
     #points = tracker.get_flights_in_area((-180,90),(180,-90))
 
 
-
+    #32.05642, 34.77310
+    points.append({
+            "lat": 32.05642,
+            "lng": 34.77310,
+            "name" : 'here',
+            "info" : 'here'
+        })
 
     return jsonify({"points": points})
 
