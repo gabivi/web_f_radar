@@ -238,7 +238,16 @@ TEMPLATE = r"""
         const isSelected = (selectedKey && key && selectedKey === key);
 
         const dir = classifyDirection(p);
-        const rot = rotationDegByDirection(dir);
+        //const rot = rotationDegByDirection(dir);
+
+        const ICON_BASE_HEADING = 45; // האייקון שלך מצביע 45° ימינה כברירת מחדל
+
+        let rot = 0;
+        if (typeof p.heading === 'number') {
+          rot = (p.heading - ICON_BASE_HEADING + 360) % 360;  // <-- התיקון
+        } else {
+          rot = rotationDegByDirection(classifyDirection(p));
+        }
 
         const icon = makePlaneDivIcon(rot, isSelected);
         const marker = L.marker([p.lat, p.lng], { icon });
@@ -985,6 +994,7 @@ def data():
             "callsign" : flight['callsign'],
             "speed" : flight['speed'],
             "altitude" : flight['altitude'],
+            "heading" : flight['heading'],
             "aircraft" : flight['aircraft']
         })
 
