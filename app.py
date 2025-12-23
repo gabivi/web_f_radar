@@ -108,6 +108,7 @@ TEMPLATE = r"""
     'CYF': 'Cyprus Airways',
     'RYR': 'Ryan Air',
     'CYP': 'Cyprus Air',
+    'SQY': 'Vision Air',
     'ETD': 'Etihad'
   };
 
