@@ -110,6 +110,7 @@ TEMPLATE = r"""
     'CYP': 'Cyprus Air',
     'SQY': 'Vision Air',
     'FDB': 'Fly Dubai',
+    'RJA': 'Royal Jordanian',
     'ETD': 'Etihad'
   };
 
