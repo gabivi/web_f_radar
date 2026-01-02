@@ -1049,6 +1049,97 @@ def data():
     return jsonify({"points": points})
 
 
+@app.route("/data1")
+def data1():
+    """
+    כאן מחזירים JSON שמייצג נקודות.
+    כרגע – דוגמה רנדומלית. במקום זה אתה יכול לקרוא ל-API שלך.
+    הפורמט:
+    {
+      "points": [
+        {"lat": ..., "lng": ..., "name": "...", "info": "..."},
+        ...
+      ]
+    }
+    """
+    #NW = (34.25, 33.35)
+    #SE = (35.90, 29.50)
+
+
+
+    #TOP_LEFT = (32.0573501,34.7777337489)      # (latitude, longitude) - שמאל למעלה
+    #BOTTOM_RIGHT = (32.0655618,34.7788870)
+    #TOP_LEFT = (34.25, 33.35)      # (latitude, longitude) - שמאל למעלה
+    #BOTTOM_RIGHT = (35.90, 29.50)
+
+    #TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
+    #BOTTOM_RIGHT = (31.5, 35.5)
+    TOP_LEFT = (32.057, 34.773)      # (latitude, longitude) - שמאל למעלה
+    BOTTOM_RIGHT = (31.065, 34.778)
+
+    points = []
+
+    tracker = FlightTracker()
+
+    #flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
+    flight = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
+
+
+    for i, flight in enumerate(flight, 1):
+        print(f"\nטיסה                           #{i}      :")
+        print(f"  שם קריאה: {flight['callsign']}")
+        print(f"  רישום: {flight['registration']}")
+        print(f"  מטוס: {flight['aircraft']}")
+        print(f"  חברת תעופה: {flight['airline']}")
+        print(f"  מוצא: {flight['origin']} → יעד: {flight['destination']}")
+        print(f"  מיקום: ({flight['latitude']:.4f}, {flight['longitude']:.4f})")
+        print(f"  גובה: {flight['altitude']} רגל")
+        print(f"  מהירות: {flight['speed']} קשר")
+        print(f"  כיוון: {flight['heading']}°")
+        print(f"  מהירות אנכית: {flight['vertical_speed']} רגל/דקה")
+        points.append({
+            "lat": flight['latitude'],
+            "lng": flight['longitude'],
+            "name" : flight['origin'] + "->" + str(flight['destination'])  , # + flight['airline'],
+            "info" : flight['aircraft'] + " " + str(flight['speed']) + " "
+                     + flight['callsign'] + " "
+                     + str(flight['altitude'])
+            ,
+            "airline" : flight['airline'],
+            "callsign" : flight['callsign'],
+            "speed" : flight['speed'],
+            "altitude" : flight['altitude'],
+            "heading" : flight['heading'],
+            "aircraft" : flight['aircraft']
+        })
+
+    #points.append({
+    #        "lat": (35,90),
+    #        "lng": (37,180),
+    #        "name" : 111,
+    #        "info" : 222
+    #    })
+
+
+    #tracker.print_flight_info(points)
+
+    #points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
+    #points = tracker.get_flights_in_area((-180,90),(180,-90))
+
+
+    #32.05642, 34.77310
+    points.append({
+            "lat": 32.05642,
+            "lng": 34.77310,
+            "name" : 'here',
+            "info" : 'here'
+        })
+
+    return jsonify({"points": points})
+
+
+
+
 if __name__ == "__main__":
     main()
 
