@@ -1046,6 +1046,32 @@ def data():
             "info" : 'here'
         })
 
+
+      points.append({
+            "lat": 32.0720497,
+            "lng": 34.7296015,
+            "name" : '.',
+            "info" : '.'
+        })
+    points.append({
+            "lat": 32.0276367,
+            "lng": 34.8127718,
+            "name" : '.',
+            "info" : '.'
+        })
+    points.append({
+            "lat": 32.0577571,
+            "lng": 34.7202464,
+            "name" : '.',
+            "info" : '.'
+        })
+    points.append({
+            "lat": 32.0446625,
+            "lng": 34.8220416,
+            "name" : '.',
+            "info" : '.'
+        })  
+
     return jsonify({"points": points})
 
 
