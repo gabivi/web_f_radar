@@ -1074,9 +1074,9 @@ def data1():
 
     #TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
     #BOTTOM_RIGHT = (31.5, 35.5)
-    TOP_LEFT = (32.057, 34.773)      # (latitude, longitude) - שמאל למעלה
-    BOTTOM_RIGHT = (31.065, 34.778)
-
+    TOP_LEFT = (32.0720497,34.7296015 ) # 32.057, 34.773)      # (latitude, longitude) - שמאל למעלה
+    BOTTOM_RIGHT = (32.0276367,34.8127718) #31.065, 34.778)
+  
     points = []
 
     tracker = FlightTracker()
