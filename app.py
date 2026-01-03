@@ -271,7 +271,7 @@ TEMPLATE = r"""
         }
 
         let icon = ''
-        if (p.name !== 'here' or p.name !== '.') {
+        if (p.name !== 'here' ) {
              icon = makePlaneDivIcon(rot, isSelected);
             } else {
              icon = makeStaticDivIcon(rot, isSelected);
