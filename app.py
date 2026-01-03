@@ -1047,7 +1047,7 @@ def data():
         })
 
 
-      points.append({
+    points.append({
             "lat": 32.0720497,
             "lng": 34.7296015,
             "name" : '.',
