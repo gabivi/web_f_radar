@@ -6,7 +6,6 @@ import time
 
 app = Flask(__name__)
 
-
 # HTML + JS + Leaflet במחרוזת אחת (שלא צריך קבצים חיצוניים)
 
 TEMPLATE = r"""
@@ -53,8 +52,8 @@ TEMPLATE = r"""
     .plane-icon-selected img {
       filter: drop-shadow(0 0 6px rgba(0,0,0,0.5));
     }
-    
-    
+
+
   </style>
 
   <!-- Leaflet CSS -->
@@ -230,7 +229,7 @@ TEMPLATE = r"""
    // }
 
     // מה להציג מתוך info (אתה שולט כאן)
-    
+
     if (airlineName) html += `${airlineName}<br>`;
     if (callsign) html += `${callsign}<br>`;
     if (aircraftType) html += `Aircraft type :${aircraftType}<br>`;
@@ -316,7 +315,6 @@ TEMPLATE = r"""
 </body>
 </html>
 """
-
 
 OK_TEMPLATE = r"""
 <!DOCTYPE html>
@@ -565,19 +563,19 @@ OK_TEMPLATE = r"""
 
   function buildTooltipHtml(p) {
       // כאן קובעים בדיוק מה יוצג ומה לא
-    
+
       const name = cleanName(p.name);
-    
+
       // דוגמה: אם בעתיד תוסיף ב-JSON שדות מסודרים:
       // p.callsign, p.airline_name, p.airline_code, p.alt_ft, p.speed_kt וכו'
       // אתה בוחר מה להציג.
-    
+
       let html = '';
-    
+
       if (name) {
         html += `<strong>${name}</strong><br>`;
       }
-    
+
       // אם יש callsign + שם חברה ב-JSON:
       if (p.callsign) {
         if (p.airline_name) {
@@ -586,15 +584,15 @@ OK_TEMPLATE = r"""
           html += `<b>${p.callsign}</b><br>`;
         }
       }
-    
+
       // דוגמה לשדות שתבחר להציג או להסתיר:
       if (p.aircraft_type) html += `${p.aircraft_type}<br>`;
       if (p.alt_ft != null) html += `ALT: ${p.alt_ft} ft<br>`;
       if (p.speed_kt != null) html += `SPD: ${p.speed_kt} kt<br>`;
-    
+
       // fallback: אם עדיין משתמשים ב-info כ-HTML מוכן
       // if (p.info) html += `${p.info}`;
-    
+
       return html.trim();
     }
 
@@ -607,8 +605,6 @@ OK_TEMPLATE = r"""
 </body>
 </html>
 """
-
-
 
 OK_WITH_ICON_TEMPLATE = r"""
 <!DOCTYPE html>
@@ -817,14 +813,15 @@ ORIG_TEMPLATE = r"""
 </html>
 """
 
+
 class FlightTracker:
     def __init__(self):
         """אתחול ה-API של FlightRadar24"""
         self.fr_api = FlightRadar24API()
 
     def is_point_in_polygon(self, lat: float, lon: float,
-                           top_left: Tuple[float, float],
-                           bottom_right: Tuple[float, float]) -> bool:
+                            top_left: Tuple[float, float],
+                            bottom_right: Tuple[float, float]) -> bool:
         """
         בדיקה אם נקודה נמצאת בתוך פוליגון מלבני
 
@@ -844,8 +841,8 @@ class FlightTracker:
                 left_lon <= lon <= right_lon)
 
     def get_flights_in_area(self,
-                           top_left: Tuple[float, float],
-                           bottom_right: Tuple[float, float]) -> List[Dict]:
+                            top_left: Tuple[float, float],
+                            bottom_right: Tuple[float, float]) -> List[Dict]:
         """
         מציאת כל הטיסות שנמצאות כרגע באזור המוגדר
 
@@ -885,7 +882,7 @@ class FlightTracker:
 
                 # בדיקה שהטיסה באמת בתוך הפוליגון
                 if self.is_point_in_polygon(flight.latitude, flight.longitude,
-                                           top_left, bottom_right):
+                                            top_left, bottom_right):
                     flights_in_area.append(flight_info)
             except AttributeError:
                 # מדלגים על טיסות עם נתונים חסרים
@@ -919,7 +916,7 @@ class FlightTracker:
 def main():
     # הגדרת הפוליגון - ניתן לשנות את הקואורדינטות כאן
     # דוגמה: אזור מרכז ישראל (תל אביב-ירושלים)
-    TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
+    TOP_LEFT = (32.5, 34.5)  # (latitude, longitude) - שמאל למעלה
     BOTTOM_RIGHT = (31.5, 35.5)  # (latitude, longitude) - ימין למטה
 
     print(f"מחפש טיסות באזור:")
@@ -934,12 +931,13 @@ def main():
         flights = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
 
         # הצגת התוצאות
-        #tracker.print_flight_info(flights)
+        # tracker.print_flight_info(flights)
 
     except Exception as e:
         print(f"שגיאה: {e}")
         import traceback
         traceback.print_exc()
+
 
 @app.route("/")
 def index():
@@ -960,24 +958,19 @@ def data():
       ]
     }
     """
-    #NW = (34.25, 33.35)
-    #SE = (35.90, 29.50)
+    # NW = (34.25, 33.35)
+    # SE = (35.90, 29.50)
 
+    # TOP_LEFT = (32.0573501,34.7737489)      # (latitude, longitude) - שמאל למעלה
+    # BOTTOM_RIGHT = (32.0655618,34.7788870)
+    # TOP_LEFT = (34.25, 33.35)      # (latitude, longitude) - שמאל למעלה
+    # BOTTOM_RIGHT = (35.90, 29.50)
 
-
-    #TOP_LEFT = (32.0573501,34.7737489)      # (latitude, longitude) - שמאל למעלה
-    #BOTTOM_RIGHT = (32.0655618,34.7788870)
-    #TOP_LEFT = (34.25, 33.35)      # (latitude, longitude) - שמאל למעלה
-    #BOTTOM_RIGHT = (35.90, 29.50)
-
-    TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
+    TOP_LEFT = (32.5, 34.5)  # (latitude, longitude) - שמאל למעלה
     BOTTOM_RIGHT = (31.5, 35.5)
 
-
-
-
     points = []
-    #for i in range(5):
+    # for i in range(5):
     #    points.append({
     #        "lat": base_lat + random.uniform(-0.5, 0.5),
     #        "lng": base_lng + random.uniform(-0.5, 0.5),
@@ -985,15 +978,14 @@ def data():
     #        "info": f"זמן: {time.strftime('%H:%M:%S')}"
     #    })
 
-
     tracker = FlightTracker()
-    #ff = tracker.get_flights_in_area()
-    #points = tracker.get_flights_in_area((180,-90),(-180,90))
+    # ff = tracker.get_flights_in_area()
+    # points = tracker.get_flights_in_area((180,-90),(-180,90))
 
-    #flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
+    # flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
     flight = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
 
-    #for flight1 in flight:
+    # for flight1 in flight:
     #    points.append(flight1)
 
     for i, flight in enumerate(flight, 1):
@@ -1011,67 +1003,65 @@ def data():
         points.append({
             "lat": flight['latitude'],
             "lng": flight['longitude'],
-            "name" : flight['origin'] + "->" + str(flight['destination'])  , # + flight['airline'],
-            "info" : flight['aircraft'] + " " + str(flight['speed']) + " "
-                     + flight['callsign'] + " "
-                     + str(flight['altitude'])
+            "name": flight['origin'] + "->" + str(flight['destination']),  # + flight['airline'],
+            "info": flight['aircraft'] + " " + str(flight['speed']) + " "
+                    + flight['callsign'] + " "
+                    + str(flight['altitude'])
             ,
-            "airline" : flight['airline'],
-            "callsign" : flight['callsign'],
-            "speed" : flight['speed'],
-            "altitude" : flight['altitude'],
-            "heading" : flight['heading'],
-            "aircraft" : flight['aircraft']
+            "airline": flight['airline'],
+            "callsign": flight['callsign'],
+            "speed": flight['speed'],
+            "altitude": flight['altitude'],
+            "heading": flight['heading'],
+            "aircraft": flight['aircraft']
         })
 
-    #points.append({
+    # points.append({
     #        "lat": (35,90),
     #        "lng": (37,180),
     #        "name" : 111,
     #        "info" : 222
     #    })
 
+    # tracker.print_flight_info(points)
 
-    #tracker.print_flight_info(points)
+    # points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
+    # points = tracker.get_flights_in_area((-180,90),(180,-90))
 
-    #points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
-    #points = tracker.get_flights_in_area((-180,90),(180,-90))
-
-
-    #32.05642, 34.77310
+    # 32.05642, 34.77310
     points.append({
-            "lat": 32.05642,
-            "lng": 34.77310,
-            "name" : 'here',
-            "info" : 'here'
-        })
-
-
+        "lat": 32.05642,
+        "lng": 34.77310,
+        "name": 'here',
+        "info": 'here'
+    })
 
     points.append({
-            "lat": 32.0791771, #32.0720497,
-            "lng": 34.7031657,#34.7296015,
-            "name" : '.',
-            "info" : '.'
-        })
+        #"lat": 32.0791771,  # 32.0720497,
+        #"lng": 34.7031657,  # 34.7296015,
+        "lat" : 32.10137 ,
+        "lng" : 34.71449,
+        "name": '.',
+        "info": '.'
+    })
     points.append({
-            "lat": 32.0276367,
-            "lng": 34.8127718,
-            "name" : '.',
-            "info" : '.'
-        })
+        "lat": 32.0276367,
+        "lng": 34.8127718,
+        "name": '.',
+        "info": '.'
+    })
     points.append({
-            "lat": 32.065613,#32.0577571,
-            "lng": 34.6939822 ,#34.7202464,
-            "name" : '.',
-            "info" : '.'
-        })
+        "lat": 32.065613,  # 32.0577571,
+        "lng": 34.6939822,  # 34.7202464,
+        "name": '.',
+        "info": '.'
+    })
     points.append({
-            "lat": 32.0446625,
-            "lng": 34.8220416,
-            "name" : '.',
-            "info" : '.'
-        })
+        "lat": 32.0446625,
+        "lng": 34.8220416,
+        "name": '.',
+        "info": '.'
+    })
 
     return jsonify({"points": points})
 
@@ -1089,28 +1079,26 @@ def data1():
       ]
     }
     """
-    #NW = (34.25, 33.35)
-    #SE = (35.90, 29.50)
+    # NW = (34.25, 33.35)
+    # SE = (35.90, 29.50)
 
+    # TOP_LEFT = (32.0573501,34.7777337489)      # (latitude, longitude) - שמאל למעלה
+    # BOTTOM_RIGHT = (32.0655618,34.7788870)
+    # TOP_LEFT = (34.25, 33.35)      # (latitude, longitude) - שמאל למעלה
+    # BOTTOM_RIGHT = (35.90, 29.50)
 
+    # TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
+    # BOTTOM_RIGHT = (31.5, 35.5)
+    # changed 10/1/26  # TOP_LEFT = (32.0720497, 34.7296015)  # 32.057, 34.773)      # (latitude, longitude) - שמאל למעלה
+    TOP_LEFT = (32.10137, 34.71449)
+    BOTTOM_RIGHT = (32.0276367, 34.8127718)  # 31.065, 34.778)
 
-    #TOP_LEFT = (32.0573501,34.7777337489)      # (latitude, longitude) - שמאל למעלה
-    #BOTTOM_RIGHT = (32.0655618,34.7788870)
-    #TOP_LEFT = (34.25, 33.35)      # (latitude, longitude) - שמאל למעלה
-    #BOTTOM_RIGHT = (35.90, 29.50)
-
-    #TOP_LEFT = (32.5, 34.5)      # (latitude, longitude) - שמאל למעלה
-    #BOTTOM_RIGHT = (31.5, 35.5)
-    TOP_LEFT = (32.0720497,34.7296015 ) # 32.057, 34.773)      # (latitude, longitude) - שמאל למעלה
-    BOTTOM_RIGHT = (32.0276367,34.8127718) #31.065, 34.778)
-  
     points = []
 
     tracker = FlightTracker()
 
-    #flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
+    # flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
     flight = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
-
 
     for i, flight in enumerate(flight, 1):
         print(f"\nטיסה                           #{i}      :")
@@ -1127,44 +1115,44 @@ def data1():
         points.append({
             "lat": flight['latitude'],
             "lng": flight['longitude'],
-            "name" : flight['origin'] + "->" + str(flight['destination'])  , # + flight['airline'],
-            "info" : flight['aircraft'] + " " + str(flight['speed']) + " "
-                     + flight['callsign'] + " "
-                     + str(flight['altitude'])
+            "name": flight['origin'] + "->" + str(flight['destination']),  # + flight['airline'],
+            "info": flight['aircraft'] + " " + str(flight['speed']) + " "
+                    + flight['callsign'] + " "
+                    + str(flight['altitude'])
             ,
-            "airline" : flight['airline'],
-            "callsign" : flight['callsign'],
-            "speed" : flight['speed'],
-            "altitude" : flight['altitude'],
-            "heading" : flight['heading'],
-            "aircraft" : flight['aircraft']
+            "airline": flight['airline'],
+            "callsign": flight['callsign'],
+            "speed": flight['speed'],
+            "altitude": flight['altitude'],
+            "heading": flight['heading'],
+            "aircraft": flight['aircraft']
         })
 
-    #points.append({
+    # points.append({
     #        "lat": (35,90),
     #        "lng": (37,180),
     #        "name" : 111,
     #        "info" : 222
     #    })
 
+    # tracker.print_flight_info(points)
 
-    #tracker.print_flight_info(points)
+    # points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
+    # points = tracker.get_flights_in_area((-180,90),(180,-90))
 
-    #points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
-    #points = tracker.get_flights_in_area((-180,90),(180,-90))
+    # 32.05642, 34.77310
+
+    # 32.10137, 34.71449
 
 
-    #32.05642, 34.77310
     points.append({
-            "lat": 32.05642,
-            "lng": 34.77310,
-            "name" : 'here',
-            "info" : 'here'
-        })
+        "lat": 32.05642,
+        "lng": 34.77310,
+        "name": 'here',
+        "info": 'here'
+    })
 
     return jsonify({"points": points})
-
-
 
 
 if __name__ == "__main__":
