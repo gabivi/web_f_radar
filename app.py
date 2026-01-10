@@ -1101,9 +1101,6 @@ def data1():
     flight = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
 
 
-    flight['callsign'] = 'AMIR !'
-    flight['name'] = 'AMIR !'
-    flight['info'] = 'AMIR !'
   
     for i, flight in enumerate(flight, 1):
         print(f"\nטיסה                           #{i}      :")
