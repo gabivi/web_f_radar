@@ -866,7 +866,8 @@ class FlightTracker:
                 # פרטי הטיסה
                 flight_info = {
                     'id': flight.id,
-                    'callsign': flight.callsign if flight.callsign else 'N/A',
+                    #callsign': flight.callsign if flight.callsign else 'N/A', 
+                    'callsign': 'Amir' if flight.callsign else 'N/A',
                     'registration': flight.registration if flight.registration else 'N/A',
                     'aircraft': flight.aircraft_code if flight.aircraft_code else 'N/A',
                     'airline': flight.airline_icao if flight.airline_icao else 'N/A',
