@@ -53,6 +53,33 @@ TEMPLATE = r"""
       filter: drop-shadow(0 0 6px rgba(0,0,0,0.5));
     }
 
+    /* 4X-ISR off-screen indicator */
+    #isr-indicator {
+      position: fixed;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: rgba(210, 30, 30, 0.92);
+      border: 2px solid #fff;
+      border-radius: 10px;
+      padding: 5px 9px;
+      z-index: 10000;
+      cursor: pointer;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.55);
+      color: #fff;
+      font-weight: bold;
+      font-size: 11px;
+      white-space: nowrap;
+      user-select: none;
+      pointer-events: all;
+      line-height: 1.3;
+    }
+    #isr-indicator #isr-icon {
+      font-size: 18px;
+      line-height: 1;
+      display: inline-block;
+    }
 
   </style>
 
@@ -73,6 +100,10 @@ TEMPLATE = r"""
 
 <body>
 <div id="map"></div>
+<div id="isr-indicator">
+  <div id="isr-icon">&#8594;</div>
+  <div>4X-ISR</div>
+</div>
 
 <script>
   // כל כמה שניות לרענן (מוזן מהשרת)
@@ -92,6 +123,7 @@ TEMPLATE = r"""
 
   // כדי לשמר בחירה בין רענונים (כי אנחנו עושים clearLayers)
   let selectedKey = null;
+  let isrPosition = null; // {lat, lng} of 4X-ISR aircraft
 
   // מיפוי קידומת callsign לשם חברה (אפשר להרחיב)
   const AIRLINE_BY_PREFIX = {
@@ -199,6 +231,68 @@ TEMPLATE = r"""
     });
   }
 
+  function makeIsrDivIcon(rotationDeg) {
+    const html = `
+      <div style="text-align:center;line-height:0;">
+        <div style="width:26px;height:26px;display:inline-block;">
+          <img src="/static/icons/plane.jpg"
+               style="width:26px;height:26px;transform:rotate(${rotationDeg}deg);
+                      filter:drop-shadow(0 0 4px rgba(210,30,30,1));" />
+        </div>
+        <div style="font-size:8px;font-weight:bold;color:#d01e1e;
+                    background:rgba(255,255,255,0.88);border-radius:3px;
+                    padding:1px 3px;margin-top:2px;line-height:1.1;
+                    white-space:nowrap;">4X-ISR</div>
+      </div>
+    `;
+    return L.divIcon({html, className: '', iconSize: [40, 38], iconAnchor: [20, 13]});
+  }
+
+  function updateIsrIndicator() {
+    const el = document.getElementById('isr-indicator');
+    const iconEl = document.getElementById('isr-icon');
+
+    if (!isrPosition) {
+      // Not in flight – show question mark pinned to bottom-left corner
+      iconEl.textContent = '?';
+      iconEl.style.transform = '';
+      el.style.left = '16px';
+      el.style.top = (window.innerHeight - 80) + 'px';
+      el.style.transform = '';
+      el.title = '4X-ISR not currently located';
+      el.style.display = 'flex';
+      return;
+    }
+
+    const bounds = map.getBounds();
+    if (bounds.contains([isrPosition.lat, isrPosition.lng])) {
+      el.style.display = 'none';
+      return;
+    }
+
+    // Off-screen – show arrow at screen edge pointing toward 4X-ISR
+    iconEl.textContent = '→';
+    const point = map.latLngToContainerPoint([isrPosition.lat, isrPosition.lng]);
+    const W = map.getContainer().clientWidth;
+    const H = map.getContainer().clientHeight;
+    const margin = 44;
+    const cx = W / 2, cy = H / 2;
+    const dx = point.x - cx, dy = point.y - cy;
+
+    const scaleX = dx !== 0 ? (dx > 0 ? (W - margin - cx) : (cx - margin)) / Math.abs(dx) : Infinity;
+    const scaleY = dy !== 0 ? (dy > 0 ? (H - margin - cy) : (cy - margin)) / Math.abs(dy) : Infinity;
+    const scale = Math.min(scaleX, scaleY);
+
+    const ex = Math.round(cx + dx * scale);
+    const ey = Math.round(cy + dy * scale);
+
+    iconEl.style.transform = `rotate(${Math.atan2(dy, dx) * 180 / Math.PI}deg)`;
+    el.style.left = ex + 'px';
+    el.style.top = ey + 'px';
+    el.style.transform = 'translate(-50%, -50%)';
+    el.title = 'Click to go to 4X-ISR';
+    el.style.display = 'flex';
+  }
 
   function tooltipClass(isSelected) {
     return isSelected ? 'plane-tooltip plane-tooltip-selected' : 'plane-tooltip';
@@ -230,6 +324,7 @@ TEMPLATE = r"""
 
     // מה להציג מתוך info (אתה שולט כאן)
 
+    if (p.registration) html += `<b>${p.registration}</b><br>`;
     if (airlineName) html += `${airlineName}<br>`;
     if (callsign) html += `${callsign}<br>`;
     if (aircraftType) html += `Aircraft type :${aircraftType}<br>`;
@@ -250,6 +345,7 @@ TEMPLATE = r"""
       const data = await res.json();
 
       markersLayer.clearLayers();
+      isrPosition = null;
 
       (data.points || []).forEach(p => {
         if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
@@ -269,12 +365,15 @@ TEMPLATE = r"""
           rot = rotationDegByDirection(classifyDirection(p));
         }
 
-        let icon = ''
-        if (p.name !== 'here' && p.name !== '.' ) {
-             icon = makePlaneDivIcon(rot, isSelected);
-            } else {
-             icon = makeStaticDivIcon(rot, isSelected);
-            }
+        let icon = '';
+        if (p.is_isr_tracked) {
+          isrPosition = {lat: p.lat, lng: p.lng};
+          icon = makeIsrDivIcon(rot);
+        } else if (p.name !== 'here' && p.name !== '.') {
+          icon = makePlaneDivIcon(rot, isSelected);
+        } else {
+          icon = makeStaticDivIcon(rot, isSelected);
+        }
         const marker = L.marker([p.lat, p.lng], { icon });
 
         // להעלות את הנבחר בחזית
@@ -302,11 +401,20 @@ TEMPLATE = r"""
         marker.addTo(markersLayer);
       });
 
+      updateIsrIndicator();
       console.log('עודכן:', new Date().toLocaleTimeString(), 'נ"ק:', (data.points || []).length);
     } catch (err) {
       console.error('שגיאה בטעינת הנתונים', err);
     }
   }
+
+  map.on('moveend zoomend', updateIsrIndicator);
+
+  document.getElementById('isr-indicator').addEventListener('click', () => {
+    if (isrPosition) {
+      map.setView([isrPosition.lat, isrPosition.lng], Math.max(map.getZoom(), 7));
+    }
+  });
 
   loadData();
   setInterval(loadData, REFRESH_SECONDS * 1000);
@@ -1028,6 +1136,33 @@ def data():
     # points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
     # points = tracker.get_flights_in_area((-180,90),(180,-90))
 
+    # Search for 4X-ISR aircraft specifically (anywhere in the world)
+    try:
+        isr_flights = tracker.fr_api.get_flights(registration='4X-ISR')
+        for fl in isr_flights:
+            try:
+                if fl.latitude and fl.longitude:
+                    origin = fl.origin_airport_iata or 'N/A'
+                    dest = fl.destination_airport_iata or 'N/A'
+                    points.append({
+                        "lat": fl.latitude,
+                        "lng": fl.longitude,
+                        "name": f"{origin}->{dest}",
+                        "airline": fl.airline_icao or 'N/A',
+                        "callsign": (fl.callsign or 'N/A').strip(),
+                        "speed": fl.ground_speed or 0,
+                        "altitude": fl.altitude or 0,
+                        "heading": fl.heading or 0,
+                        "aircraft": fl.aircraft_code or 'N/A',
+                        "registration": "4X-ISR",
+                        "is_isr_tracked": True
+                    })
+                    print(f"  4X-ISR found: ({fl.latitude:.4f}, {fl.longitude:.4f})")
+            except AttributeError:
+                continue
+    except Exception as e:
+        print(f"  Could not find 4X-ISR: {e}")
+
     # 32.05642, 34.77310
     points.append({
         "lat": 32.05642,
@@ -1155,6 +1290,30 @@ def data1():
     })
 
     return jsonify({"points": points})
+
+
+@app.route("/isr-debug")
+def isr_debug():
+    tracker = FlightTracker()
+    result = {"registration": "4X-ISR", "found": [], "error": None}
+    try:
+        isr_flights = tracker.fr_api.get_flights(registration='4X-ISR')
+        result["raw_count"] = len(isr_flights)
+        for fl in isr_flights:
+            try:
+                result["found"].append({
+                    "registration": fl.registration,
+                    "callsign": fl.callsign,
+                    "lat": fl.latitude,
+                    "lng": fl.longitude,
+                    "altitude": fl.altitude,
+                    "aircraft": fl.aircraft_code,
+                })
+            except AttributeError as e:
+                result["found"].append({"attr_error": str(e)})
+    except Exception as e:
+        result["error"] = str(e)
+    return jsonify(result)
 
 
 if __name__ == "__main__":
