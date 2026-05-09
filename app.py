@@ -81,6 +81,40 @@ TEMPLATE = r"""
       display: inline-block;
     }
 
+    /* 4X-ISR corner info panel */
+    #isr-panel {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 16px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.97);
+      border: 2px solid #d01e1e;
+      border-radius: 10px;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.35);
+      padding: 10px 14px 10px 14px;
+      min-width: 200px;
+      font-size: 12px;
+      color: #111;
+      pointer-events: none;
+    }
+    #isr-panel .isr-panel-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #d01e1e;
+      margin-bottom: 7px;
+      border-bottom: 1px solid #f0c0c0;
+      padding-bottom: 4px;
+    }
+    #isr-panel .isr-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin: 2px 0;
+    }
+    #isr-panel .isr-label { color: #666; }
+    #isr-panel .isr-val   { font-weight: 600; }
+
   </style>
 
   <!-- Leaflet CSS -->
@@ -102,7 +136,18 @@ TEMPLATE = r"""
 <div id="map"></div>
 <div id="isr-indicator">
   <div id="isr-icon">&#8594;</div>
-  <div>4X-ISR</div>
+  <div>4X-ISR (KNAF-ZION)</div>
+</div>
+<div id="isr-panel">
+  <div class="isr-panel-title">✈ 4X-ISR &nbsp;(KNAF-ZION)</div>
+  <div class="isr-row"><span class="isr-label">Lat</span><span class="isr-val" id="isr-lat">–</span></div>
+  <div class="isr-row"><span class="isr-label">Lng</span><span class="isr-val" id="isr-lng">–</span></div>
+  <div class="isr-row"><span class="isr-label">Altitude</span><span class="isr-val" id="isr-alt">–</span></div>
+  <div class="isr-row"><span class="isr-label">Speed</span><span class="isr-val" id="isr-spd">–</span></div>
+  <div class="isr-row"><span class="isr-label">Heading</span><span class="isr-val" id="isr-hdg">–</span></div>
+  <div class="isr-row"><span class="isr-label">Callsign</span><span class="isr-val" id="isr-cs">–</span></div>
+  <div class="isr-row"><span class="isr-label">Aircraft</span><span class="isr-val" id="isr-ac">–</span></div>
+  <div class="isr-row"><span class="isr-label">Route</span><span class="isr-val" id="isr-rt">–</span></div>
 </div>
 
 <script>
@@ -124,6 +169,7 @@ TEMPLATE = r"""
   // כדי לשמר בחירה בין רענונים (כי אנחנו עושים clearLayers)
   let selectedKey = null;
   let isrPosition = null; // {lat, lng} of 4X-ISR aircraft
+  let isrData = null;     // full point object for 4X-ISR
 
   // מיפוי קידומת callsign לשם חברה (אפשר להרחיב)
   const AIRLINE_BY_PREFIX = {
@@ -242,7 +288,7 @@ TEMPLATE = r"""
         <div style="font-size:8px;font-weight:bold;color:#d01e1e;
                     background:rgba(255,255,255,0.88);border-radius:3px;
                     padding:1px 3px;margin-top:2px;line-height:1.1;
-                    white-space:nowrap;">4X-ISR</div>
+                    white-space:nowrap;">4X-ISR (KNAF-ZION)</div>
       </div>
     `;
     return L.divIcon({html, className: '', iconSize: [40, 38], iconAnchor: [20, 13]});
@@ -292,6 +338,22 @@ TEMPLATE = r"""
     el.style.transform = 'translate(-50%, -50%)';
     el.title = 'Click to go to 4X-ISR';
     el.style.display = 'flex';
+  }
+
+  function updateIsrPanel() {
+    const panel = document.getElementById('isr-panel');
+    if (!isrData) { panel.style.display = 'none'; return; }
+
+    const fmt = (v, unit) => (v != null && v !== 'N/A' && v !== '') ? `${v}${unit || ''}` : '–';
+    document.getElementById('isr-lat').textContent = isrData.lat.toFixed(4);
+    document.getElementById('isr-lng').textContent = isrData.lng.toFixed(4);
+    document.getElementById('isr-alt').textContent = fmt(isrData.altitude, ' ft');
+    document.getElementById('isr-spd').textContent = fmt(isrData.speed, ' kt');
+    document.getElementById('isr-hdg').textContent = fmt(isrData.heading, '°');
+    document.getElementById('isr-cs').textContent  = fmt((isrData.callsign || '').trim());
+    document.getElementById('isr-ac').textContent  = fmt(isrData.aircraft);
+    document.getElementById('isr-rt').textContent  = fmt(isrData.name);
+    panel.style.display = 'block';
   }
 
   function tooltipClass(isSelected) {
@@ -346,6 +408,7 @@ TEMPLATE = r"""
 
       markersLayer.clearLayers();
       isrPosition = null;
+      isrData = null;
 
       (data.points || []).forEach(p => {
         if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
@@ -368,6 +431,7 @@ TEMPLATE = r"""
         let icon = '';
         if (p.is_isr_tracked) {
           isrPosition = {lat: p.lat, lng: p.lng};
+          isrData = p;
           icon = makeIsrDivIcon(rot);
         } else if (p.name !== 'here' && p.name !== '.') {
           icon = makePlaneDivIcon(rot, isSelected);
@@ -402,6 +466,7 @@ TEMPLATE = r"""
       });
 
       updateIsrIndicator();
+      updateIsrPanel();
       console.log('עודכן:', new Date().toLocaleTimeString(), 'נ"ק:', (data.points || []).length);
     } catch (err) {
       console.error('שגיאה בטעינת הנתונים', err);
