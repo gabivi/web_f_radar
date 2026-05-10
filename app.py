@@ -56,11 +56,14 @@ def calc_eta(lat, lon, dest_iata, speed_knots):
     return f"{mins // 60}h {mins % 60:02d}m"
 
 def load_watchlist():
-    path = os.path.join(os.path.dirname(__file__), 'watchlist.json')
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'watchlist.json')
     try:
         with open(path, encoding='utf-8') as f:
-            return json.load(f).get('flights', [])
-    except Exception:
+            data = json.load(f).get('flights', [])
+            print(f"  Watchlist loaded: {[e.get('callsign') for e in data]}")
+            return data
+    except Exception as e:
+        print(f"  Watchlist load error ({path}): {e}")
         return []
 
 # HTML + JS + Leaflet במחרוזת אחת (שלא צריך קבצים חיצוניים)
@@ -632,6 +635,7 @@ TEMPLATE = r"""
       updateIsrIndicator();
       updateIsrPanel();
       // Update watch panel (preserve current flight if still present)
+      console.log('watchedFlights:', watchedFlights.length, watchedFlights.map(p=>p.callsign));
       if (watchedFlights.length > 0) {
         const found = watchedFlights.findIndex(p => (p.callsign||'').trim() === currentWatchCallsign);
         watchIndex = found >= 0 ? found : 0;
@@ -1586,6 +1590,39 @@ def isr_debug():
                 result["found"].append({"attr_error": str(e)})
     except Exception as e:
         result["error"] = str(e)
+    return jsonify(result)
+
+
+@app.route("/watchlist-debug")
+def watchlist_debug():
+    watchlist = load_watchlist()
+    tracker = FlightTracker()
+    result = {"watchlist": watchlist, "results": []}
+    for entry in watchlist:
+        wcs = (entry.get('callsign') or '').strip().upper()
+        if not wcs:
+            continue
+        prefix = wcs[:3]
+        item = {"callsign": wcs, "prefix": prefix, "found": [], "error": None}
+        try:
+            flights = tracker.fr_api.get_flights(airline=prefix)
+            item["airline_flights_count"] = len(flights)
+            for fl in flights:
+                try:
+                    fl_cs = (fl.callsign or '').strip().upper()
+                    if fl_cs == wcs:
+                        item["found"].append({
+                            "callsign": fl.callsign,
+                            "lat": fl.latitude,
+                            "lng": fl.longitude,
+                            "altitude": fl.altitude,
+                            "aircraft": fl.aircraft_code,
+                        })
+                except AttributeError:
+                    continue
+        except Exception as e:
+            item["error"] = str(e)
+        result["results"].append(item)
     return jsonify(result)
 
 

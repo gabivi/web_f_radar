@@ -1,8 +1,8 @@
 {
   "flights": [
-    {"callsign": "BBG745", "label": "BBG"},
-    {"callsign": "ELY002", "label": "El Al 002"}
-    {"callsign": "ELY001", "label": "El Al 002"}
-    {"callsign": "TKJ3VQ", "label": "TKJ3VQ - test"}
-	]
+    {"callsign": "BBG745",  "label": "BBG"},
+    {"callsign": "ELY002",  "label": "El Al 002"},
+    {"callsign": "ELY001",  "label": "El Al 001"},
+    {"callsign": "TKJ3VQ",  "label": "TKJ3VQ - test"}
+  ]
 }
