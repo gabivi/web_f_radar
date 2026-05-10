@@ -3,7 +3,7 @@
     {"callsign": "BBG745",  "label": "BBG"},
     {"callsign": "ELY002",  "label": "El Al 002"},
     {"callsign": "ELY001",  "label": "El Al 001"},
-    {"callsign": "TKJ3VQ",  "label": "TKJ3VQ - test"}
+    {"callsign": "TKJ3VQ",  "label": "TKJ3VQ - test"},
     {"callsign": "ELY007",  "label": "ELY007 - test"}
   ]
 }
