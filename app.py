@@ -3,8 +3,65 @@ from typing import List, Dict, Tuple
 from flask import Flask, jsonify, render_template_string
 import random
 import time
+import math
+import os
+import json
 
 app = Flask(__name__)
+
+# ---------- Airport coordinates (IATA -> (lat, lon)) for ETA ----------
+AIRPORT_COORDS = {
+    'TLV': (32.0055, 34.8854), 'ETM': (29.5613, 34.9597),
+    'LHR': (51.4700, -0.4543), 'LGW': (51.1537, -0.1821),
+    'CDG': (49.0097,  2.5479), 'ORY': (48.7233,  2.3794),
+    'AMS': (52.3086,  4.7639), 'FRA': (50.0379,  8.5622),
+    'MUC': (48.3538, 11.7861), 'VIE': (48.1103, 16.5697),
+    'ZRH': (47.4647,  8.5492), 'BCN': (41.2971,  2.0785),
+    'MAD': (40.4936, -3.5668), 'FCO': (41.8003, 12.2389),
+    'ATH': (37.9364, 23.9445), 'IST': (41.2608, 28.7418),
+    'SAW': (40.8986, 29.3092), 'DXB': (25.2528, 55.3644),
+    'AUH': (24.4330, 54.6511), 'DOH': (25.2732, 51.6080),
+    'AMM': (31.7226, 35.9932), 'BEY': (33.8209, 35.4883),
+    'CAI': (30.1219, 31.4056), 'JFK': (40.6413,-73.7781),
+    'EWR': (40.6895,-74.1745), 'LAX': (33.9425,-118.4081),
+    'ORD': (41.9742,-87.9073), 'MIA': (25.7959,-80.2870),
+    'YYZ': (43.6777,-79.6248), 'BRU': (50.9010,  4.4844),
+    'CPH': (55.6179, 12.6560), 'ARN': (59.6519, 17.9186),
+    'WAW': (52.1657, 20.9671), 'PRG': (50.1008, 14.2600),
+    'BUD': (47.4298, 19.2611), 'OTP': (44.5711, 26.0858),
+    'KBP': (50.3450, 30.8947), 'GVA': (46.2380,  6.1089),
+    'NCE': (43.6584,  7.2150), 'MXP': (45.6301,  8.7231),
+    'BKK': (13.6811, 100.747), 'SIN': (1.3644,  103.991),
+    'PEK': (40.0799, 116.603), 'NRT': (35.7720, 140.392),
+    'HKG': (22.3080, 113.915), 'DEL': (28.5562,  77.1000),
+    'BOM': (19.0896,  72.8656),
+}
+
+def haversine_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    d = math.radians
+    a = math.sin(d(lat2-lat1)/2)**2 + math.cos(d(lat1))*math.cos(d(lat2))*math.sin(d(lon2-lon1)/2)**2
+    return R * 2 * math.asin(math.sqrt(a))
+
+def calc_eta(lat, lon, dest_iata, speed_knots):
+    if not dest_iata or dest_iata == 'N/A' or not speed_knots or speed_knots < 10:
+        return None
+    coords = AIRPORT_COORDS.get(str(dest_iata).strip().upper())
+    if not coords:
+        return None
+    dist_nm = haversine_km(lat, lon, coords[0], coords[1]) / 1.852
+    mins = int(dist_nm / speed_knots * 60)
+    if mins <= 0:
+        return None
+    return f"{mins // 60}h {mins % 60:02d}m"
+
+def load_watchlist():
+    path = os.path.join(os.path.dirname(__file__), 'watchlist.json')
+    try:
+        with open(path, encoding='utf-8') as f:
+            return json.load(f).get('flights', [])
+    except Exception:
+        return []
 
 # HTML + JS + Leaflet במחרוזת אחת (שלא צריך קבצים חיצוניים)
 
@@ -25,8 +82,8 @@ TEMPLATE = r"""
       border: 1px solid #222;
       border-radius: 7px;
       padding: 8px 10px;
-      font-size: 15px;
-      line-height: 1.35;
+      font-size: 17px;
+      line-height: 1.4;
       font-weight: 500;
       color: #111;
       box-shadow: 0 3px 10px rgba(0,0,0,0.25);
@@ -115,6 +172,44 @@ TEMPLATE = r"""
     #isr-panel .isr-label { color: #666; }
     #isr-panel .isr-val   { font-weight: 600; }
 
+    /* Watched-flight mini panel (bottom-left) */
+    #watch-panel {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      left: 16px;
+      z-index: 9999;
+      background: rgba(255,255,255,0.97);
+      border: 2px solid #1a6e1a;
+      border-radius: 10px;
+      box-shadow: 0 3px 14px rgba(0,0,0,0.35);
+      width: 230px;
+      font-size: 12px;
+      color: #111;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    #watch-panel .watch-title {
+      font-size: 12px;
+      font-weight: bold;
+      color: #fff;
+      background: #1a6e1a;
+      padding: 6px 10px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    #watch-map { height: 145px; width: 100%; }
+    #watch-panel .watch-info { padding: 5px 10px 7px; }
+    #watch-panel .w-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 8px;
+      margin: 2px 0;
+    }
+    #watch-panel .w-lbl { color: #666; }
+    #watch-panel .w-val { font-weight: 600; }
+
   </style>
 
   <!-- Leaflet CSS -->
@@ -139,7 +234,7 @@ TEMPLATE = r"""
   <div>4X-ISR (KNAF-ZION)</div>
 </div>
 <div id="isr-panel">
-  <div class="isr-panel-title">✈ 4X-ISR &nbsp;(KNAF-ZION)</div>
+  <div class="isr-panel-title">&#9992; 4X-ISR &nbsp;(KNAF-ZION)</div>
   <div class="isr-row"><span class="isr-label">Lat</span><span class="isr-val" id="isr-lat">–</span></div>
   <div class="isr-row"><span class="isr-label">Lng</span><span class="isr-val" id="isr-lng">–</span></div>
   <div class="isr-row"><span class="isr-label">Altitude</span><span class="isr-val" id="isr-alt">–</span></div>
@@ -148,6 +243,19 @@ TEMPLATE = r"""
   <div class="isr-row"><span class="isr-label">Callsign</span><span class="isr-val" id="isr-cs">–</span></div>
   <div class="isr-row"><span class="isr-label">Aircraft</span><span class="isr-val" id="isr-ac">–</span></div>
   <div class="isr-row"><span class="isr-label">Route</span><span class="isr-val" id="isr-rt">–</span></div>
+</div>
+
+<!-- Watched-flight panel -->
+<div id="watch-panel">
+  <div class="watch-title" id="watch-title">&#128225; Watching...</div>
+  <div id="watch-map"></div>
+  <div class="watch-info">
+    <div class="w-row"><span class="w-lbl">Route</span><span class="w-val" id="watch-route">–</span></div>
+    <div class="w-row"><span class="w-lbl">Altitude</span><span class="w-val" id="watch-alt">–</span></div>
+    <div class="w-row"><span class="w-lbl">Speed</span><span class="w-val" id="watch-spd">–</span></div>
+    <div class="w-row"><span class="w-lbl">Heading</span><span class="w-val" id="watch-hdg">–</span></div>
+    <div class="w-row"><span class="w-lbl">ETA</span><span class="w-val" id="watch-eta">–</span></div>
+  </div>
 </div>
 
 <script>
@@ -168,8 +276,13 @@ TEMPLATE = r"""
 
   // כדי לשמר בחירה בין רענונים (כי אנחנו עושים clearLayers)
   let selectedKey = null;
-  let isrPosition = null; // {lat, lng} of 4X-ISR aircraft
-  let isrData = null;     // full point object for 4X-ISR
+  let isrPosition = null;  // {lat, lng} of 4X-ISR aircraft
+  let isrData = null;      // full point object for 4X-ISR
+  let watchedFlights = []; // current refresh's matched watchlist flights
+  let watchIndex = 0;
+  let currentWatchCallsign = null;
+  let watchMiniMap = null;
+  let watchMiniMarker = null;
 
   // מיפוי קידומת callsign לשם חברה (אפשר להרחיב)
   const AIRLINE_BY_PREFIX = {
@@ -283,9 +396,9 @@ TEMPLATE = r"""
         <div style="width:26px;height:26px;display:inline-block;">
           <img src="/static/icons/plane.jpg"
                style="width:26px;height:26px;transform:rotate(${rotationDeg}deg);
-                      filter:drop-shadow(0 0 4px rgba(210,30,30,1));" />
+                      filter:drop-shadow(0 0 5px rgba(20,160,20,1));" />
         </div>
-        <div style="font-size:8px;font-weight:bold;color:#d01e1e;
+        <div style="font-size:8px;font-weight:bold;color:#1a7a1a;
                     background:rgba(255,255,255,0.88);border-radius:3px;
                     padding:1px 3px;margin-top:2px;line-height:1.1;
                     white-space:nowrap;">4X-ISR (KNAF-ZION)</div>
@@ -299,11 +412,11 @@ TEMPLATE = r"""
     const iconEl = document.getElementById('isr-icon');
 
     if (!isrPosition) {
-      // Not in flight – show question mark pinned to bottom-left corner
+      // Not in flight – show question mark pinned to top-left corner
       iconEl.textContent = '?';
       iconEl.style.transform = '';
       el.style.left = '16px';
-      el.style.top = (window.innerHeight - 80) + 'px';
+      el.style.top = '90px';   // below Leaflet zoom buttons (~70px tall)
       el.style.transform = '';
       el.title = '4X-ISR not currently located';
       el.style.display = 'flex';
@@ -356,6 +469,53 @@ TEMPLATE = r"""
     panel.style.display = 'block';
   }
 
+  function initWatchMiniMap() {
+    if (watchMiniMap) return;
+    watchMiniMap = L.map('watch-map', {
+      zoomControl: false, attributionControl: false,
+      dragging: false, scrollWheelZoom: false,
+      doubleClickZoom: false, touchZoom: false
+    }).setView([32.08, 34.78], 9);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(watchMiniMap);
+    watchMiniMarker = L.marker([32.08, 34.78], {
+      icon: L.divIcon({
+        html: '<div style="width:12px;height:12px;background:#1a6e1a;border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,100,0,0.7);"></div>',
+        className: '', iconSize: [12,12], iconAnchor: [6,6]
+      })
+    }).addTo(watchMiniMap);
+  }
+
+  function showWatchedFlight(idx) {
+    const panel = document.getElementById('watch-panel');
+    if (!watchedFlights.length) { panel.style.display = 'none'; return; }
+    const p = watchedFlights[idx % watchedFlights.length];
+    currentWatchCallsign = (p.callsign || '').trim();
+    const total = watchedFlights.length;
+    const counter = total > 1 ? ` (${idx % total + 1}/${total})` : '';
+    document.getElementById('watch-title').textContent =
+      '📡 ' + (p.watch_label || currentWatchCallsign || '?') + counter;
+    document.getElementById('watch-route').textContent = p.name || '–';
+    document.getElementById('watch-alt').textContent = p.altitude ? p.altitude + ' ft' : '–';
+    document.getElementById('watch-spd').textContent = p.speed ? p.speed + ' kt' : '–';
+    document.getElementById('watch-hdg').textContent = p.heading != null ? p.heading + '°' : '–';
+    document.getElementById('watch-eta').textContent = p.eta || '–';
+    panel.style.display = 'block';
+    requestAnimationFrame(() => {
+      initWatchMiniMap();
+      watchMiniMap.invalidateSize();
+      watchMiniMap.setView([p.lat, p.lng], 9);
+      watchMiniMarker.setLatLng([p.lat, p.lng]);
+    });
+  }
+
+  // Rotate through watched flights every 20 seconds
+  setInterval(() => {
+    if (watchedFlights.length > 1) {
+      watchIndex = (watchIndex + 1) % watchedFlights.length;
+      showWatchedFlight(watchIndex);
+    }
+  }, 20000);
+
   function tooltipClass(isSelected) {
     return isSelected ? 'plane-tooltip plane-tooltip-selected' : 'plane-tooltip';
   }
@@ -389,9 +549,10 @@ TEMPLATE = r"""
     if (p.registration) html += `<b>${p.registration}</b><br>`;
     if (airlineName) html += `${airlineName}<br>`;
     if (callsign) html += `${callsign}<br>`;
-    if (aircraftType) html += `Aircraft type :${aircraftType}<br>`;
-    if (speedOrOther) html += `Speed :${speedOrOther}<br>`;
-    if (altOrOther) html += `Altitude :${altOrOther}`;
+    if (aircraftType) html += `Aircraft: ${aircraftType}<br>`;
+    if (speedOrOther) html += `Speed: ${speedOrOther} kt<br>`;
+    if (altOrOther) html += `Alt: ${altOrOther} ft<br>`;
+    if (p.eta) html += `ETA: ${p.eta}`;
 
     return html.trim();
   }
@@ -409,6 +570,7 @@ TEMPLATE = r"""
       markersLayer.clearLayers();
       isrPosition = null;
       isrData = null;
+      watchedFlights = [];
 
       (data.points || []).forEach(p => {
         if (typeof p.lat !== 'number' || typeof p.lng !== 'number') return;
@@ -429,6 +591,9 @@ TEMPLATE = r"""
         }
 
         let icon = '';
+        if (p.is_watched) {
+          watchedFlights.push(p);
+        }
         if (p.is_isr_tracked) {
           isrPosition = {lat: p.lat, lng: p.lng};
           isrData = p;
@@ -467,6 +632,14 @@ TEMPLATE = r"""
 
       updateIsrIndicator();
       updateIsrPanel();
+      // Update watch panel (preserve current flight if still present)
+      if (watchedFlights.length > 0) {
+        const found = watchedFlights.findIndex(p => (p.callsign||'').trim() === currentWatchCallsign);
+        watchIndex = found >= 0 ? found : 0;
+        showWatchedFlight(watchIndex);
+      } else {
+        document.getElementById('watch-panel').style.display = 'none';
+      }
       console.log('עודכן:', new Date().toLocaleTimeString(), 'נ"ק:', (data.points || []).length);
     } catch (err) {
       console.error('שגיאה בטעינת הנתונים', err);
@@ -1158,48 +1331,24 @@ def data():
     # flight = tracker.get_flights_in_area((35.90, 29.50),(34.25, 33.35))
     flight = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
 
-    # for flight1 in flight:
-    #    points.append(flight1)
-
     for i, flight in enumerate(flight, 1):
-        print(f"\nטיסה                           #{i}      :")
-        print(f"  שם קריאה: {flight['callsign']}")
-        print(f"  רישום: {flight['registration']}")
-        print(f"  מטוס: {flight['aircraft']}")
-        print(f"  חברת תעופה: {flight['airline']}")
-        print(f"  מוצא: {flight['origin']} → יעד: {flight['destination']}")
-        print(f"  מיקום: ({flight['latitude']:.4f}, {flight['longitude']:.4f})")
-        print(f"  גובה: {flight['altitude']} רגל")
-        print(f"  מהירות: {flight['speed']} קשר")
-        print(f"  כיוון: {flight['heading']}°")
-        print(f"  מהירות אנכית: {flight['vertical_speed']} רגל/דקה")
+        print(f"\nטיסה #{i}: {flight['callsign']} {flight['origin']}->{flight['destination']}")
         points.append({
             "lat": flight['latitude'],
             "lng": flight['longitude'],
-            "name": flight['origin'] + "->" + str(flight['destination']),  # + flight['airline'],
+            "name": flight['origin'] + "->" + str(flight['destination']),
             "info": flight['aircraft'] + " " + str(flight['speed']) + " "
-                    + flight['callsign'] + " "
-                    + str(flight['altitude'])
-            ,
+                    + flight['callsign'] + " " + str(flight['altitude']),
             "airline": flight['airline'],
             "callsign": flight['callsign'],
             "speed": flight['speed'],
             "altitude": flight['altitude'],
             "heading": flight['heading'],
-            "aircraft": flight['aircraft']
+            "aircraft": flight['aircraft'],
+            "destination": flight['destination'],
+            "eta": calc_eta(flight['latitude'], flight['longitude'],
+                            flight['destination'], flight['speed'])
         })
-
-    # points.append({
-    #        "lat": (35,90),
-    #        "lng": (37,180),
-    #        "name" : 111,
-    #        "info" : 222
-    #    })
-
-    # tracker.print_flight_info(points)
-
-    # points = tracker.get_flights_in_area(TOP_LEFT, BOTTOM_RIGHT)
-    # points = tracker.get_flights_in_area((-180,90),(180,-90))
 
     # Search for 4X-ISR aircraft specifically (anywhere in the world)
     try:
@@ -1227,6 +1376,66 @@ def data():
                 continue
     except Exception as e:
         print(f"  Could not find 4X-ISR: {e}")
+
+    # Match watchlist entries already found in area
+    watchlist = load_watchlist()
+    already_watched = set()
+    if watchlist:
+        for pt in points:
+            if pt.get('is_isr_tracked') or pt.get('name') in ('here', '.'):
+                continue
+            cs = (pt.get('callsign') or '').strip().upper()
+            for entry in watchlist:
+                wcs = (entry.get('callsign') or '').strip().upper()
+                if wcs and cs == wcs:
+                    pt['is_watched'] = True
+                    pt['watch_label'] = entry.get('label') or cs
+                    already_watched.add(wcs)
+                    break
+
+    # Global search for watchlist flights not found in the area polygon.
+    # get_flights() has no callsign param, so fetch by airline prefix and filter.
+    for entry in watchlist:
+        wcs = (entry.get('callsign') or '').strip().upper()
+        if not wcs or wcs in already_watched:
+            continue
+        airline_prefix = wcs[:3]  # e.g. 'BBG' from 'BBG745'
+        try:
+            airline_flights = tracker.fr_api.get_flights(airline=airline_prefix)
+            for fl in airline_flights:
+                try:
+                    fl_cs = (fl.callsign or '').strip().upper()
+                    if fl_cs != wcs:
+                        continue
+                    if not fl.latitude or not fl.longitude:
+                        continue
+                    origin = fl.origin_airport_iata or 'N/A'
+                    dest   = fl.destination_airport_iata or 'N/A'
+                    cs_raw = (fl.callsign or '').strip()
+                    points.append({
+                        "lat":         fl.latitude,
+                        "lng":         fl.longitude,
+                        "name":        f"{origin}->{dest}",
+                        "airline":     fl.airline_icao or 'N/A',
+                        "callsign":    cs_raw,
+                        "speed":       fl.ground_speed or 0,
+                        "altitude":    fl.altitude or 0,
+                        "heading":     fl.heading or 0,
+                        "aircraft":    fl.aircraft_code or 'N/A',
+                        "destination": dest,
+                        "eta":         calc_eta(fl.latitude, fl.longitude,
+                                                dest, fl.ground_speed or 0),
+                        "is_watched":  True,
+                        "watch_label": entry.get('label') or cs_raw
+                    })
+                    print(f"  Watchlist (global) found: {cs_raw} at "
+                          f"({fl.latitude:.4f}, {fl.longitude:.4f})")
+                    already_watched.add(wcs)
+                    break
+                except AttributeError:
+                    continue
+        except Exception as e:
+            print(f"  Could not find watchlist flight {wcs}: {e}")
 
     # 32.05642, 34.77310
     points.append({
