@@ -478,10 +478,7 @@ TEMPLATE = r"""
     }).setView([32.08, 34.78], 9);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(watchMiniMap);
     watchMiniMarker = L.marker([32.08, 34.78], {
-      icon: L.divIcon({
-        html: '<div style="width:12px;height:12px;background:#1a6e1a;border:2px solid #fff;border-radius:50%;box-shadow:0 0 4px rgba(0,100,0,0.7);"></div>',
-        className: '', iconSize: [12,12], iconAnchor: [6,6]
-      })
+      icon: makePlaneDivIcon(0, false)
     }).addTo(watchMiniMap);
   }
 
@@ -500,11 +497,13 @@ TEMPLATE = r"""
     document.getElementById('watch-hdg').textContent = p.heading != null ? p.heading + '°' : '–';
     document.getElementById('watch-eta').textContent = p.eta || '–';
     panel.style.display = 'block';
+    const rot = typeof p.heading === 'number' ? (p.heading - 45 + 360) % 360 : 0;
     requestAnimationFrame(() => {
       initWatchMiniMap();
       watchMiniMap.invalidateSize();
       watchMiniMap.setView([p.lat, p.lng], 9);
       watchMiniMarker.setLatLng([p.lat, p.lng]);
+      watchMiniMarker.setIcon(makePlaneDivIcon(rot, false));
     });
   }
 
