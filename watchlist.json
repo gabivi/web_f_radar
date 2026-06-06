@@ -4,6 +4,6 @@
     {"callsign": "ELY002",  "label": "El Al 002"},
     {"callsign": "ELY001",  "label": "El Al 001"},
     {"callsign": "ELY338",  "label": "ELY338 - ams tlv"},
-    {"callsign": "ELY007",  "label": "ey593 - test"}
+    {"callsign": "EY593",  "label": "ey593 - test"}
   ]
 }
