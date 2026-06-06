@@ -1,6 +1,6 @@
 {
   "flights": [
-    {"callsign": "BBG745",  "label": "BBG"},
+    {"callsign": "etd5sm",  "label": "etd5sm},
     {"callsign": "ELY002",  "label": "El Al 002"},
     {"callsign": "ELY001",  "label": "El Al 001"},
     {"callsign": "ELY338",  "label": "ELY338 - ams tlv"},
